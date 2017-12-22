@@ -1,0 +1,33 @@
+version: '2'
+services:
+    source:
+        image: btcgenerator
+        container_name: generator
+        hostname: generator
+    zookeeper:
+        image: zookeeper
+        restart: always
+        container_name: zookeeper
+        hostname: zookeeper
+        ports:
+            - 2181:2181
+    kafka:
+        image: kafka
+        container_name: kafka
+        hostname: kafka
+        ports:
+          - "9092:9092"
+        depends_on:
+          - zookeeper
+    elk:
+        image: sebp/elk
+        container_name: elk
+        ports:
+          - "5601:5601"
+          - "9200:9200"
+          - "5044:5044"
+    spark-streaming:
+        image: spark-streaming
+        container_name: spark-streaming
+        hostname: spark-streaming
+    
