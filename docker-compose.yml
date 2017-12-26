@@ -4,6 +4,8 @@ services:
         image: btcgenerator
         container_name: generator
         hostname: generator
+        depends_on:
+          - kafka
     zookeeper:
         image: zookeeper
         restart: always
