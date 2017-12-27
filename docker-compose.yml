@@ -12,7 +12,7 @@ services:
         container_name: zookeeper
         hostname: zookeeper
         ports:
-            - 2181:2181
+            - "2181:2181"
     kafka:
         image: kafka
         container_name: kafka
@@ -32,4 +32,8 @@ services:
         image: spark-streaming
         container_name: spark-streaming
         hostname: spark-streaming
+        ports:
+          - "4042:4042"
+        depends_on:
+          - elk
     

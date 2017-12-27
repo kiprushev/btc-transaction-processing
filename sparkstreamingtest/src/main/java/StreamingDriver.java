@@ -3,11 +3,14 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.streaming.Duration;
+import org.apache.spark.streaming.api.java.JavaDStream;
 import org.apache.spark.streaming.api.java.JavaInputDStream;
 import org.apache.spark.streaming.api.java.JavaStreamingContext;
 import org.apache.spark.streaming.kafka010.ConsumerStrategies;
 import org.apache.spark.streaming.kafka010.KafkaUtils;
 import org.apache.spark.streaming.kafka010.LocationStrategies;
+import org.elasticsearch.spark.rdd.api.java.JavaEsSpark;
+import org.elasticsearch.spark.streaming.api.java.JavaEsSparkStreaming;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -39,8 +42,15 @@ public class StreamingDriver {
 
         // Create a local StreamingContext with two working thread and batch interval of 1 second
 
+        String json1 = "{\"reason\" : \"business\",\"airport\" : \"SFO\"}";
+        String json2 = "{\"participants\" : 5,\"airport\" : \"OTP\"}";
+
+
+
         SparkConf conf = new SparkConf().setAppName("Btc transactions to Elastic").setMaster("local[2]");
         conf.set("es.index.auto.create", "true");
+        conf.set("es.nodes", "elk");
+        conf.set("es.port","9200");
 
         try (JavaStreamingContext ssc = new JavaStreamingContext(conf, new Duration(1000))) {
 
@@ -52,17 +62,10 @@ public class StreamingDriver {
                     );
            // JavaInputDStream< String> stream = ssc.socketTextStream("localhost", 4444);
 
-            stream.foreachRDD(r -> {
-                System.out.println("*** got an RDD, size = " + r.count());
-                    r.foreach(s -> System.out.println(s));
-            if (r.count() > 0) {
-                // let's see how many partitions the resulting RDD has -- notice that it has nothing
-                // to do with the number of partitions in the RDD used to publish the data (4), nor
-                // the number of partitions of the topic (which also happens to be four.)
-                System.out.println("*** " + r.getNumPartitions() + " partitions");
-                r.glom().foreach(a -> System.out.println("*** partition size = " + a.size()));
-            }
-    });
+
+
+            JavaEsSparkStreaming.saveJsonToEs(stream.map(record -> record.value()),"something/transactions");
+
 
                     //foreachRDD(rdd-> rdd.foreach(v ->v.value()));
             ssc.start();

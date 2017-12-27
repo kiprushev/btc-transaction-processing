@@ -43,7 +43,12 @@
 
     <!-- Spark, Spark Streaming and Kafka Dependencies -->
     <dependencies>
-
+        <!-- https://mvnrepository.com/artifact/org.elasticsearch/elasticsearch-spark -->
+        <dependency>
+            <groupId>org.elasticsearch</groupId>
+            <artifactId>elasticsearch-spark-20_2.11</artifactId>
+            <version>6.1.0</version>
+        </dependency>
 
         <!-- Spark, Spark Streaming and Kafka Dependencies -->
         <dependency>
