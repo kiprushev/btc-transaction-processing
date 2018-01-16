@@ -5,7 +5,7 @@ package model;
  */
 public class CryptoData {
     private String exchange;
-    private String cryptoCurrency;
+    private String cryptocurrency;
     private String baseCurrency;
     private String type;
     private String price;
@@ -20,7 +20,7 @@ public class CryptoData {
 
     public CryptoData(String exchange, String cryptoCurrency, String baseCurrency, String type, String price, String size, String bid, String ask, String open, String high, String low, String volume, String timestamp) {
         this.exchange = exchange;
-        this.cryptoCurrency = cryptoCurrency;
+        this.cryptocurrency = cryptoCurrency;
         this.baseCurrency = baseCurrency;
         this.type = type;
         this.price = price;

@@ -13,8 +13,8 @@ import sender.SocketSender;
  */
 public class BTCGenerator {
 
-   KafkaSender sender = new KafkaSender();
-   // SocketSender sender  = new SocketSender();
+   //KafkaSender kafkaSender = new KafkaSender();
+    SocketSender socketSender  = new SocketSender();
     static final String endpoint = "wss://open-data.api.satori.com";
     static final String appkey = "B6dFab9fAb0D392dE6CdeeEcEc0FCB1a";
     static final String channel = "cryptocurrency-market-data";
@@ -33,8 +33,8 @@ public class BTCGenerator {
             @Override
             public void onSubscriptionData(SubscriptionData data) {
                 for (AnyJson json : data.getMessages()) {
-                sender.send(new ProducerRecord("crypto",json.toString()));
-                   // sender.send(json.toString());
+             //   kafkaSender.send(new ProducerRecord("crypto",json.toString()));
+                   socketSender.send(json.toString());
                 }
             }
         };
@@ -44,7 +44,7 @@ public class BTCGenerator {
         client.start();
 //        long i =1;
 //        while(true){
-//        sender.send(new ProducerRecord("crypto","Value"+i++));}
+//        kafkaSender.send(new ProducerRecord("crypto","Value"+i++));}
     }
 
 }

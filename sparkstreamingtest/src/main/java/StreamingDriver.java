@@ -1,7 +1,12 @@
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sun.rowset.internal.Row;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.SQLContext;
+import org.apache.spark.sql.SparkSession;
 import org.apache.spark.streaming.Duration;
 import org.apache.spark.streaming.api.java.JavaDStream;
 import org.apache.spark.streaming.api.java.JavaInputDStream;
@@ -12,10 +17,7 @@ import org.apache.spark.streaming.kafka010.LocationStrategies;
 import org.elasticsearch.spark.rdd.api.java.JavaEsSpark;
 import org.elasticsearch.spark.streaming.api.java.JavaEsSparkStreaming;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 
 /**
@@ -35,39 +37,59 @@ public class StreamingDriver {
         kafkaParams.put("enable.auto.commit", false);
         return kafkaParams;
     }
-    public static void printRDD(final JavaPairRDD<String,String> s) {
-        s.foreach( v -> System.out.println(v._2()));
-    }
+
     public static void main(String[] args) throws Exception {
 
         // Create a local StreamingContext with two working thread and batch interval of 1 second
 
-        String json1 = "{\"reason\" : \"business\",\"airport\" : \"SFO\"}";
-        String json2 = "{\"participants\" : 5,\"airport\" : \"OTP\"}";
-
-
 
         SparkConf conf = new SparkConf().setAppName("Btc transactions to Elastic").setMaster("local[2]");
         conf.set("es.index.auto.create", "true");
-        conf.set("es.nodes", "elk");
+        conf.set("es.nodes", "localhost");
         conf.set("es.port","9200");
 
-        try (JavaStreamingContext ssc = new JavaStreamingContext(conf, new Duration(1000))) {
+//        SparkSession sparkSession = SparkSession.builder()
+//                .config(conf)
+//                .enableHiveSupport()
+//                .getOrCreate();
 
-            JavaInputDStream<ConsumerRecord<String, String>> stream = //ssc.socketTextStream("localhost", 4444);
-                    KafkaUtils.createDirectStream(
-                            ssc,
-                            LocationStrategies.PreferConsistent(),
-                            ConsumerStrategies.<String, String>Subscribe(TOPICS, getKafkaParams())
-                    );
-           // JavaInputDStream< String> stream = ssc.socketTextStream("localhost", 4444);
+        try (JavaStreamingContext ssc = new JavaStreamingContext(conf, new Duration(60000))) {
+
+//            JavaInputDStream<ConsumerRecord<String, String>> stream =
+//                    KafkaUtils.createDirectStream(
+//                            ssc,
+//                            LocationStrategies.PreferConsistent(),
+//                            ConsumerStrategies.<String, String>Subscribe(TOPICS, getKafkaParams())
+//                    );
+         JavaInputDStream<String> stream = ssc.socketTextStream("localhost", 4444);
+
+            //SQLContext sqlContext = new SQLContext(sparkSession);
+
+            System.out.println(stream.map(v-> new ObjectMapper().readValue(v, CryptoData.class)).count());
+
+            stream.foreachRDD(rdd->{
+                List<CryptoData> list = new ArrayList<>();
+                Long count = rdd.map(v-> new ObjectMapper().readValue(v, CryptoData.class)).count();
+                   list =  rdd.map(v-> new ObjectMapper().readValue(v, CryptoData.class))
+                            .filter(cryptoData -> cryptoData.getBasecurrency().equals("USD") && cryptoData.getCryptocurrency().equals("BTC")).collect();
 
 
+                if (list.size()>0){
+                    Double avg = list.stream().mapToDouble(v->Double.parseDouble(v.getPrice())).average().getAsDouble();
+                    System.out.println(avg);
+                    System.out.println(count);
+                }
 
-            JavaEsSparkStreaming.saveJsonToEs(stream.map(record -> record.value()),"something/transactions");
+//
+
+            });
+//                .foreachRDD(cryptoDataJavaRDD -> cryptoDataJavaRDD.collect().forEach(v-> System.out.println(v)));
+
+                //.reduce((a,b) -> Integer.parseInt(a.getPrice())+Integer.parseInt(b.getPrice()));
+
+          JavaEsSparkStreaming.saveJsonToEs(stream,"something/transactions");
 
 
-                    //foreachRDD(rdd-> rdd.foreach(v ->v.value()));
             ssc.start();
             ssc.awaitTermination();
 
